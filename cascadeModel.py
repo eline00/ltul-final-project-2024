@@ -1,7 +1,6 @@
 import random
 import networkx as nx
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 
 
 # Create a social network graph
@@ -17,7 +16,7 @@ def create_social_network(num_nodes, edge_prob):
 
 def initialize_states_and_biases(G, celebrity_node_republican, celebrity_node_democrat,
                                  celebrity_party_democrat, celebrity_party_republican,
-                                 concealment_prob, predefined_internal_states):
+                                 predefined_internal_states):
     all_nodes = set(G.nodes)
     non_celeb_nodes = all_nodes - {celebrity_node_republican, celebrity_node_democrat}
 
@@ -25,25 +24,18 @@ def initialize_states_and_biases(G, celebrity_node_republican, celebrity_node_de
         G.nodes[node]['internal_state'] = 'undecided'  # True belief
         G.nodes[node]['public_state'] = 'undecided'  # What they say publicly
         G.nodes[node]['bias'] = random.uniform(0.5, 1.5)  # Bias between 0.5 and 1.5
-        G.nodes[node]['concealment_prob'] = concealment_prob  # Probability to conceal true belief
 
     for celebrity_node, celeb_party in [(celebrity_node_democrat, celebrity_party_democrat), (celebrity_node_republican, celebrity_party_republican)]:
         G.nodes[celebrity_node]['bias'] = 10.0  # Celebrity has much higher influence
         G.nodes[celebrity_node]['internal_state'] = celeb_party  # Celebrity's true belief
         G.nodes[celebrity_node]['public_state'] = celeb_party  # Celebrity's public expression
-        G.nodes[celebrity_node]['concealment_prob'] = 0.0  # Celebrity always expresses true belief
 
     num_predefined = predefined_internal_states
     predefined_nodes = random.sample(list(non_celeb_nodes), num_predefined)
 
     for node in predefined_nodes:
         G.nodes[node]['internal_state'] = random.choice(['democrat', 'republican'])
-        concealment = random.random() < G.nodes[node]['concealment_prob']
-        if concealment:
-            internal = G.nodes[node]['internal_state']
-            G.nodes[node]['public_state'] = 'democrat' if internal == 'republican' else 'republican'
-        else:
-            G.nodes[node]['public_state'] = G.nodes[node]['internal_state']
+        G.nodes[node]['public_state'] = G.nodes[node]['internal_state']
 
 
 # Simulate information cascade
@@ -91,11 +83,7 @@ def simulate_cascade(G, celebrity_node_republican, celebrity_node_democrat, thre
             break  # No more undecided voters, stop the cascade
         for node, party in new_voters:
             G.nodes[node]['internal_state'] = party
-            concealment = random.random() < G.nodes[node]['concealment_prob']
-            if concealment:
-                G.nodes[node]['public_state'] = 'democrat' if party == 'republican' else 'republican'
-            else:
-                G.nodes[node]['public_state'] = party
+            G.nodes[node]['public_state'] = party
 
         capture_state()
 
@@ -141,11 +129,6 @@ def visualize_voting_network(G, celebrity_node_republican, celebrity_node_democr
         nx.draw_networkx_edges(G, pos)
         nx.draw_networkx_labels(G, pos)
 
-        legend_elements = [
-            Line2D([0], [0], marker='o', color='w', label='Honest', markerfacecolor='black', markersize=10),
-            Line2D([0], [0], marker='s', color='w', label='Concealing', markerfacecolor='black', markersize=10)
-        ]
-        plt.legend(handles=legend_elements, loc='upper right')
 
         plt.title(f"Cascade Progression - Step {step + 1}")
         plt.axis("off")
@@ -160,7 +143,6 @@ def main():
     celebrity_party_democrat = 'democrat'  # Celebrity's party
     celebrity_node_republican = 1
     celebrity_party_republican = 'republican'
-    concealment_prob = 0.3
     predefined_internal_states = 10
 
     # Create the social network
@@ -169,7 +151,7 @@ def main():
     # Initialize the states
     initialize_states_and_biases(G, celebrity_node_republican, celebrity_node_democrat,
                                  celebrity_party_democrat, celebrity_party_republican,
-                                 concealment_prob, predefined_internal_states)
+                                 predefined_internal_states)
 
     states_over_time = simulate_cascade(G, celebrity_node_republican, celebrity_node_democrat, threshold)
     visualize_voting_network(G, celebrity_node_republican, celebrity_node_democrat, "teste", states_over_time)
